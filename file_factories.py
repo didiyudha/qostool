@@ -6,6 +6,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+
 from datetime import datetime
 
 def generate_file():
@@ -33,3 +34,11 @@ def write_file(file_name, json_data):
     f.write(str(beforehand_data))
     f.write(str(json_data)+"\n")
     f.close()
+
+def read_file(file_name):
+    contents = []
+    with open(file_name) as f:
+        for line in f:
+            logger.debug(line)
+            contents.append(line)
+    return contents

@@ -108,8 +108,8 @@ def stop(sess, mklist):
     CCR_avps.append(encodeAVP('CC-Request-Number', req_num[sess]))
     # print "read mk"
     # print mklist
-    logger.debug(mklist)
     if mklist:
+        logger.debug(mklist)
         for mk in mklist:
             print mk
             for k in mk:
@@ -210,9 +210,7 @@ def handle_cmd(srv):
             received = conn.recv(1024)
             jsonObject = json.loads(received)
             write_file(file_name, jsonObject)
-            print '+++++' * 30
             logger.debug('jsonObject: %s', jsonObject)
-            print '+++++' * 30
             action = jsonObject['action']
             logger.debug('action: %s', action)
             if action == "start":
@@ -332,6 +330,7 @@ def handle_gx(conn):
         bearer = findAVP("Default-EPS-Bearer-QoS", avps)
         mklist = []
         ruleIlist = []
+        rules_removed = []
         for avp in avps:
             if isinstance(avp, tuple):
                 (Name, Value) = avp
@@ -348,16 +347,23 @@ def handle_gx(conn):
                     mkinfo[mk] = total
                     mklist.append(mkinfo)
             elif Name == "Charging-Rule-Install":
-                (Nam, Val) = decodeAVP(avp)
-                for av in Val:
-                    if isinstance(av, tuple):
-                        (Na, Va) = av
-                    else:
-                        (Na, Va) = decodeAVP(av)
-                    ruleIlist.append(Va)
+                # (Nam, Val) = decodeAVP(avp)
+                # for av in Val:
+                #     if isinstance(av, tuple):
+                #         (Na, Va) = av
+                #     else:
+                #         (Na, Va) = decodeAVP(av)
+                #     ruleIlist.append(Va)
+                ruleIlist.append(extract_charging_rule(avp))
+            elif Name == "Charging-Rule-Remove":
+                rules_removed.append(extract_charging_rule(avp))
+                logger.debug('Rules removed: %s', rules_removed)
+
         data = {}
         if ruleIlist:
             data['ruleInstall'] = ruleIlist
+        if rules_removed:
+            data['ruleRemoved'] = rules_removed
         if mklist:
             data['monitoringKey'] = mklist
         if qosinfo != -1:
@@ -389,6 +395,18 @@ def handle_gx(conn):
         logger.debug(json_data)
         write_file(file_name, json_data)
         client_list[CCA_SESSION].send(json_data + "\n")
+
+def extract_charging_rule(avp):
+    rules = []
+    (Nam, Val) = decodeAVP(avp)
+    for av in Val:
+        if isinstance(av, tuple):
+            (Na, Va) = av
+        else:
+            (Na, Va) = decodeAVP(av)
+        rules.append(Va)
+    return rules
+
 
 if __name__ == '__main__':
     # SET THIS TO YOUR PCRF SIMULATOR IP/PORT
