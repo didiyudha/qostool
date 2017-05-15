@@ -24,6 +24,7 @@ if __name__ == '__main__':
             sys.exit()
         logger.info('Connection is successfully established')
         contents = read_file(file_name)
+        logger.debug(contents)
         for msg in contents:
             try:
                 client_socket.sendall(msg)

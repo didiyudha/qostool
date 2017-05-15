@@ -1,4 +1,5 @@
 import socket, select
+import json
 
 if __name__ == "__main__":
 
@@ -39,7 +40,14 @@ if __name__ == "__main__":
                     data = sock.recv(RECV_BUFFER)
                     # echo back the client message
                     if data:
-                        sock.send('OK ... ' + data)
+                        dto = {}
+                        mk = [{"3300": 10485760}, {"5000": 2021440}]
+                        dto['ul'] = 5760000
+                        dto['dl'] = 4096000
+                        dto['rc'] = 2001
+                        dto['mk'] = mk
+                        json_data = json.dumps(dto)
+                        sock.send(json_data)
 
                 # client disconnected, so remove from socket list
                 except:
