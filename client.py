@@ -37,25 +37,17 @@ for inp in inputs:
     if inp:
         json_input = json.loads(inp)
         logger.debug(json_input)
-        action = json_input['action']
-        logger.debug(action)
-        if action == "start":
-            try:
-                client_socket.sendall(json_input)
-            except socket.error:
-                logger.info('Failed sending message to the server')
-                sys.exit()
-            ans = client_socket.recv(1024)
-            json_ans = json.loads(ans)
-            mklist = json_ans['mk']
-        else:
-            if mklist:
-                json_input['mk'] = mklist
-            try:
-                client_socket.sendall(json_input)
-            except socket.error:
-                logger.info('Failed sending message to the server')
-                sys.exit()
-    del mklist[:]
-
+        if mklist:
+            json_input['mk'] = mklist
+        try:
+	    logger.debug('send command to server: %s', json_input)
+	    cmd = json.dumps(json_input).encode('utf-8')
+            client_socket.sendall(cmd)
+        except socket.error:
+            logger.info('Failed sending message to the server')
+            sys.exit()
+        ans = client_socket.recv(1024)
+        json_ans = json.loads(ans)
+        if 'monitoringKey' in json_ans:
+	    mklist = json_ans['monitoringKey']
 
