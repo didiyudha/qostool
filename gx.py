@@ -347,13 +347,6 @@ def handle_gx(conn):
                     mkinfo[mk] = total
                     mklist.append(mkinfo)
             elif Name == "Charging-Rule-Install":
-                # (Nam, Val) = decodeAVP(avp)
-                # for av in Val:
-                #     if isinstance(av, tuple):
-                #         (Na, Va) = av
-                #     else:
-                #         (Na, Va) = decodeAVP(av)
-                #     ruleIlist.append(Va)
                 ruleIlist.append(extract_charging_rule(avp))
             elif Name == "Charging-Rule-Remove":
                 rules_removed.append(extract_charging_rule(avp))
