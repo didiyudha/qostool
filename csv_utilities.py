@@ -19,22 +19,21 @@ def parse_monitoring_key(mklist):
     keys = ""
     if not mklist:
         return ""
-    for mk in mklist:
-        for key, value in mk:
-            # key as monitoring key and value as QoS slice value
-            monitoring_key = key
-            qos_slice_value = str(value)
-            keys += monitoring_key + ","
-    return keys
+    logger.debug('mklist: %s', mklist)
+    for obj in mklist:
+        logger.debug(obj)
+        for key in obj.keys():
+            logger.debug(key)
+            keys += str(key) + ","
+    return keys[:-1]
 
-def parse_rule(rules):
-    if rules == "" or rules == "-":
-        return ""
-    values = ""
-    for s in rules:
-        values += s + ","
-    return values
-
+def parse_rule(rule_list):
+    rules = ""
+    if rule_list:
+        for rule in rule_list:
+            rules += rule + ","
+        return rules[:-1]
+    return ""
 
 def write_output(object_list, msid):
     data = []
@@ -42,21 +41,22 @@ def write_output(object_list, msid):
     data.append(header)
     output_obj = {}
     for obj in object_list:
-        output_obj['uplink'] = obj['uplink'] if 'uplink' in obj else output_obj['uplink'] = "-"
-        output_obj['downlink'] = obj['downlink'] if 'downlink' in obj else output_obj['uplink'] = "-"
-        output_obj['ruleInstall'] = obj['ruleInstall'] if 'ruleInstall' in obj else output_obj['ruleInstall'] = "-"
-        output_obj['monitoringKey'] = obj['monitoringKey'] if 'monitoringKey' in obj else output_obj['monitoringKey'] = "-"
-        output_obj['ruleRemoved'] = obj['ruleRemoved'] if 'ruleRemoved' in obj else output_obj['ruleRemoved'] = "-"
-        output_obj['qci'] = obj['qci'] if 'qci' in obj else output_obj['qci'] = "-"
-        output_obj['arp'] = obj['arp'] if 'arp' in obj else output_obj['arp'] = "-"
+        logger.debug(obj)
 
-        parsed_mk = parse_monitoring_key(output_obj['monitoringKey'])
-        rule_install = parse_rule(output_obj['ruleInstall'])
-        rule_removed = parse_rule(output_obj['ruleInstall'])
+if __name__ == '__main__':
+    result = {}
+    result['monitoringKey'] = [{"5157": 10485760}, {"5156": 10485760}]
+    result['ruleInstall'] = ["1", "157"]
+    mk = result['monitoringKey']
+    ruleInstall = result['ruleInstall']
+    logger.debug(mk)
+    parse_mk = parse_monitoring_key(mk)
+    logger.debug(parse_mk)
+    parse_rule = parse_rule(ruleInstall)
+    logger.debug(parse_rule)
 
-        data = (output_obj['uplink']+","+output_obj['downlink']+","+rule_install+
-                parsed_mk+rule_removed+output_obj['qci']+","+output_obj['arp'])
-        logger.debug(data)
+
+
 
 
 
