@@ -356,7 +356,7 @@ def handle_gx(conn):
         RAA.EndToEnd = H.EndToEnd
         ret = createRes(RAA, RAA_avps)
         conn.send(ret.decode("hex"))
-    #CCA and CCR
+    #CCR and CCA
     elif H.cmd == 272:
         CCA_SESSION = findAVP("Session-Id", avps)
         rc = findAVP("Result-Code", avps)

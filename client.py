@@ -32,13 +32,19 @@ logger.debug(inputs)
 mklist=[]
 outputs = []
 msid = ""
+ratType = ""
 for inp in inputs:
     if inp:
         objJSON = input_str_to_json(inp)
         json_input = json.loads(objJSON)
         action = json_input['action']
+
         if action == "start" and 'msid' in json_input:
             msid = json_input['msid']
+
+        if 'at' in json_input:
+            ratType = json_input['at']
+
         if mklist and action.upper() != "STOP":
             json_input['mk'] = mklist
         try:
@@ -49,10 +55,15 @@ for inp in inputs:
         except socket.error:
             logger.info('Failed sending message to the server')
             sys.exit()
+
         ans = client_socket.recv(1024)
         json_ans = json.loads(ans)
+
+        if msid:
+            json_ans['msid'] = msid
         outputs.append(json_ans)
         write_file(output_file, json_ans)
+
         if 'monitoringKey' in json_ans:
             mklist=json_ans['monitoringKey']
         elif mklist:
