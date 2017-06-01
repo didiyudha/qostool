@@ -8,10 +8,8 @@ import select
 import json
 import threading
 import thread
-import sys;
+import sys
 import logging
-
-from file_factories import generate_file, write_file
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -20,8 +18,8 @@ sys.path.append("..")
 # Remove them normally
 
 # PGW client - Gx protocol for tests with PCRF simulator
-
 from libDiameter import *
+from configuration import *
 
 def update(sess, mklist, at):
     CCR_avps = []
@@ -202,6 +200,40 @@ def start(msid, apn, ip, at, tz):
     # send data
     Conn.send(msg.decode('hex'))
 
+def build_cer():
+    ###### FIRST WE CREATE CER and receive CEA ###########################
+    # Let's build CER
+    CER_avps = []
+    CER_avps.append(encodeAVP('Origin-Host', ORIGIN_HOST))
+    CER_avps.append(encodeAVP('Origin-Realm', ORIGIN_REALM))
+    CER_avps.append(encodeAVP('Host-IP-Address', '10.195.84.157'))
+    CER_avps.append(encodeAVP('Vendor-Id', '193'))
+    CER_avps.append(encodeAVP('Product-Name', 'QoSTools'))
+    CER_avps.append(encodeAVP('Origin-State-Id', 15))
+    CER_avps.append(encodeAVP('Supported-Vendor-Id', 10415))
+    CER_avps.append(encodeAVP('Vendor-Specific-Application-Id',
+                            [encodeAVP('Vendor-Id', 10415), encodeAVP('Auth-Application-Id', 16777238)]))
+    CER_avps.append(encodeAVP('Firmware-Revision', 221842434))
+    # Create message header (empty)
+    CER = HDRItem()
+    # Set command code
+    CER.cmd = dictCOMMANDname2code('Capabilities-Exchange')
+    # Set Hop-by-Hop and End-to-End
+    initializeHops(CER)
+    # Add AVPs to header and calculate remaining fields
+    msg = createReq(CER, CER_avps)
+
+    # msg now contains CER Request as hex string
+    # send data
+    Conn.send(msg.decode('hex'))
+    # Receive response
+    received = Conn.recv(1024)
+
+    # Parse and display received CEA ANSWER
+    # print "THE CEA ANSWER IS:"
+    msg = received.encode('hex')
+    return msg
+
 def handle_cmd(srv):
     conn, address = srv.accept()
     mydata.peer = str(conn.getpeername())
@@ -209,7 +241,6 @@ def handle_cmd(srv):
         try:
             received = conn.recv(1024)
             jsonObject = json.loads(received)
-            write_file(file_name, jsonObject)
             logger.debug('jsonObject: %s', jsonObject)
             action = jsonObject['action']
             logger.debug('action: %s', action)
@@ -260,6 +291,7 @@ def handle_gx(conn):
         # print "Decoded AVP", decodeAVP(avp)
         logger.debug(aName)
         logger.debug(rt)
+    # Device Watchdog Request/Answer
     if H.cmd == 280:
         DWA_avps = []
         DWA_avps.append(encodeAVP('Origin-Host', ORIGIN_HOST))
@@ -272,7 +304,8 @@ def handle_gx(conn):
         DWA.EndToEnd = H.EndToEnd
         ret = createRes(DWA, DWA_avps)
         conn.send(ret.decode("hex"))
-    elif H.cmd == 258:
+    # RAR and RAA
+    elif H.cmd == 258: 
         RAA_SESSION = findAVP("Session-Id", avps)
         rartype = findAVP("Re-Auth-Request-Type", avps)
         qosinfo = findAVP("QoS-Information", avps)
@@ -323,6 +356,7 @@ def handle_gx(conn):
         RAA.EndToEnd = H.EndToEnd
         ret = createRes(RAA, RAA_avps)
         conn.send(ret.decode("hex"))
+    #CCR and CCA
     elif H.cmd == 272:
         CCA_SESSION = findAVP("Session-Id", avps)
         rc = findAVP("Result-Code", avps)
@@ -347,13 +381,6 @@ def handle_gx(conn):
                     mkinfo[mk] = total
                     mklist.append(mkinfo)
             elif Name == "Charging-Rule-Install":
-                # (Nam, Val) = decodeAVP(avp)
-                # for av in Val:
-                #     if isinstance(av, tuple):
-                #         (Na, Va) = av
-                #     else:
-                #         (Na, Va) = decodeAVP(av)
-                #     ruleIlist.append(Va)
                 ruleIlist.append(extract_charging_rule(avp))
             elif Name == "Charging-Rule-Remove":
                 rules_removed.append(extract_charging_rule(avp))
@@ -393,7 +420,6 @@ def handle_gx(conn):
         data['resultCode'] = rc
         json_data = json.dumps(data)
         logger.debug(json_data)
-        write_file(file_name, json_data)
         client_list[CCA_SESSION].send(json_data + "\n")
 
 def extract_charging_rule(avp):
@@ -409,60 +435,16 @@ def extract_charging_rule(avp):
 
 
 if __name__ == '__main__':
-    # SET THIS TO YOUR PCRF SIMULATOR IP/PORT
-
-    HOST = "10.23.32.93"
-    # HOST = "172.29.30.62"
-    PORT = 3868
-    ORIGIN_HOST = "gx.qostools.xl.co.id"
-    ORIGIN_REALM = "qostools.xl.co.id"
-# DEST_REALM="xltest.id"
-# DEST_HOST="SAPCCBTTEST.xltest.id"
-DEST_REALM = "xl.co.id"
-DEST_HOST = "vpcrf.xl.co.id"
-IDENTITY = "1234567890"  # This is msisdn of user in SPR DB
-
-# Generate file
-file_name = ""
+    LoadDictionary("dictDiameter.xml")
 
 Conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Conn.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 SOURCE_PORT = 3869
 Conn.bind(('0.0.0.0', SOURCE_PORT))
 Conn.connect((HOST, PORT))
-LoadDictionary("dictDiameter.xml")
 
-###### FIRST WE CREATE CER and receive CEA ###########################
-# Let's build CER
-CER_avps = []
-CER_avps.append(encodeAVP('Origin-Host', ORIGIN_HOST))
-CER_avps.append(encodeAVP('Origin-Realm', ORIGIN_REALM))
-CER_avps.append(encodeAVP('Host-IP-Address', '10.195.84.157'))
-CER_avps.append(encodeAVP('Vendor-Id', '193'))
-CER_avps.append(encodeAVP('Product-Name', 'QoSTools'))
-CER_avps.append(encodeAVP('Origin-State-Id', 15))
-CER_avps.append(encodeAVP('Supported-Vendor-Id', 10415))
-CER_avps.append(encodeAVP('Vendor-Specific-Application-Id',
-                          [encodeAVP('Vendor-Id', 10415), encodeAVP('Auth-Application-Id', 16777238)]))
-CER_avps.append(encodeAVP('Firmware-Revision', 221842434))
-# Create message header (empty)
-CER = HDRItem()
-# Set command code
-CER.cmd = dictCOMMANDname2code('Capabilities-Exchange')
-# Set Hop-by-Hop and End-to-End
-initializeHops(CER)
-# Add AVPs to header and calculate remaining fields
-msg = createReq(CER, CER_avps)
-
-# msg now contains CER Request as hex string
-# send data
-Conn.send(msg.decode('hex'))
-# Receive response
-received = Conn.recv(1024)
-
-# Parse and display received CEA ANSWER
-# print "THE CEA ANSWER IS:"
-msg = received.encode('hex')
+# Build CER
+msg = build_cer()
 # print msg
 H = HDRItem()
 stripHdr(H, msg)
@@ -473,21 +455,12 @@ if cmd == ERROR:
     print 'Unknown command', H.cmd
 else:
     logger.debug('Command: %s', cmd)
-    print 'Command: ' + cmd
-    # print "Hop-by-Hop=", H.HopByHop, "End-to-End=", H.EndToEnd, "ApplicationId=", H.appId
-    # print "=" * 30
-    # for avp in avps:
-    #     print "Decoded AVP", decodeAVP(avp)
-    #     print "-" * 30
 
 mydata = threading.local()
 sock_list = []
 client_list = {}
 sess_list = {}
 req_num = {}
-CMD_HOST = "localhost"
-CMD_PORT = 5555
-MAX_CLIENTS = 20
 CMD_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # fix "Address already in use" error upon restart
 CMD_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -505,7 +478,4 @@ while True:
         if r == Conn:
             thread.start_new_thread(handle_gx, (r,))
         elif r == CMD_server:
-            file_name = generate_file()
             thread.start_new_thread(handle_cmd, (r,))
-
-
