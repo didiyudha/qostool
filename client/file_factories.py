@@ -44,7 +44,7 @@ def write_file(file_name, json_data):
     f.write(str(json_data)+"\n")
     f.close()
 
-def arrage_output(json_output):
+def arrange_output(json_output):
     output = ""
     if 'arp' in json_output:
         arp = json_output['arp']
@@ -80,7 +80,7 @@ def write_output(file_name, json_data):
     beforehand_data = cont + "\n"
     f = open(file_name, "w")
     f.write(str(beforehand_data))
-    str_output = arrage_output(json_data)
+    str_output = arrange_output(json_data)
     f.write(str_output+"\n")
     f.close()
 

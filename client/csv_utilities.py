@@ -17,18 +17,20 @@ def generate_file_name():
 
 def parse_monitoring_key(mklist):
     keys = ""
-    if not mklist:
-        return ""
     for obj in mklist:
         for key in obj.keys():
             keys += str(key) + "|"
+
+    if keys == "":
+        return "-"
     return keys[:-1]
 
 def parse_rule(rule_list):
     rules = ""
     if rule_list:
-        for rule in rule_list:
-            rules += str(rule) + "|"
+        for rls in rule_list:
+            for rule in rls:
+                rules += str(rule) + "|"
         return rules[:-1]
     return ""
 
@@ -36,8 +38,8 @@ def parse_obj_to_str(obj):
     if not obj:
         return ""
     output = ""
-    if 'msisdn' in obj:
-        output += obj['msisdn'] + ";"
+    if 'msid' in obj:
+        output += obj['msid'] + ";"
     else:
         output += "-;"
     if 'at' in obj:

@@ -1,0 +1,7 @@
+action=start;msid=62878900500;apn=internet;ip=172.1.2.3;at=4g;
+action=update;at=4g;
+action=update;at=3g;
+action=update;at=3g;
+action=update;at=3g;
+action=update;at=2g;
+action=stop;
